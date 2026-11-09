@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tasklane – Project and task manager</title>
+<style>
+:root{--bg:#f2f4f0;--panel:#fff;--ink:#14211f;--mute:#556360;--line:#d5dcd7;--acc:#0e6663;--accink:#fff;--danger:#a32d2d;--todo:#8a97a8;--prog:#c27b12;--done:#0e6663;--block:#a32d2d;--r:6px;color-scheme:light}
+[data-theme=dark]{--bg:#0f1615;--panel:#172120;--ink:#e6eeeb;--mute:#9bacaa;--line:#2b3a38;--acc:#4fc3bd;--accink:#062423;--danger:#ff8a80;--todo:#8796a8;--prog:#e0a040;--done:#4fc3bd;--block:#ff8a80;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style",serif;line-height:1.2;margin:0}
+h1{font-size:1.5rem}h2{font-size:1.2rem}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
+aside{position:fixed;top:0;bottom:0;left:0;width:260px;transform:translateX(-100%);transition:transform .2s;background:var(--panel);border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:6px;z-index:20;overflow:auto}
+aside.open{transform:none}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10}
+.brand{font-family:Georgia,serif;font-size:1.4rem;font-weight:700;padding:4px 8px 14px}
+.nav{display:block;width:100%;text-align:left;background:none;border:0;border-radius:var(--r);padding:10px 12px;cursor:pointer}
+.nav:hover{background:var(--bg)}
+.nav[aria-current=page]{background:var(--acc);color:var(--accink);font-weight:600}
+.sep{border:0;border-top:1px solid var(--line);margin:10px 0;width:100%}
+main{padding:16px;min-width:0}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+header.top h1{flex:1;min-width:8rem}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 14px;cursor:pointer;min-height:40px}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+.btn.dng{color:var(--danger);border-color:var(--danger)}
+.btn.sm{padding:4px 10px;min-height:32px}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px dashed var(--prog);border-radius:var(--r);padding:8px 12px;margin-bottom:16px;background:var(--panel)}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;margin-bottom:16px}
+label{display:grid;gap:4px;font-weight:600;font-size:.9rem}
+input,select{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 10px;min-height:40px;width:100%}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.kpi b{display:block;font-family:Georgia,serif;font-size:2rem;line-height:1.1}
+.kpi span{color:var(--mute);font-size:.9rem}
+.kpi.warn b{color:var(--danger)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.chart{width:100%;height:auto;margin-top:10px;display:block}
+.chart .lbl,.chart .val{fill:var(--ink);font-size:12px}.chart .val{fill:var(--mute)}
+.b-todo{fill:var(--todo)}.b-prog{fill:var(--prog)}.b-block{fill:var(--block)}.b-done{fill:var(--done)}.b-open{fill:var(--todo)}
+.legend{display:flex;gap:14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.85rem;color:var(--mute)}
+th button{background:none;border:0;padding:0;cursor:pointer;font-weight:700;color:inherit}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.85rem}
+.badge i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.over{color:var(--danger);font-weight:600}
+.acts{display:flex;gap:6px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:12px}
+.empty{padding:28px 12px;text-align:center;color:var(--mute)}
+dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);padding:20px;width:min(480px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog form,.stack{display:grid;gap:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.err{color:var(--danger);margin:0;min-height:1.2em;font-size:.9rem}
+#toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:var(--r);z-index:50;max-width:calc(100vw - 24px)}
+#toast:empty{display:none}
+[hidden]{display:none!important}
+@media(min-width:900px){
+ .app{grid-template-columns:260px minmax(0,1fr)}
+ aside{position:sticky;height:100vh;transform:none;width:auto}
+ .menu,.scrim{display:none}
+ main{padding:24px 32px}
+}
+@media(prefers-reduced-motion:reduce){aside{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside id="side" aria-label="Sidebar">
+ <div class="brand">Tasklane</div>
+ <nav aria-label="Main"><button class="nav" data-view="overview">Overview</button><button class="nav" data-view="tasks">Tasks</button></nav>
+ <hr class="sep">
+ <button class="nav" id="bImport">Import JSON</button>
+ <button class="nav" id="bExport">Export JSON</button>
+ <button class="nav" id="bSettings">Settings</button>
+ <input type="file" id="file" accept="application/json,.json" hidden aria-label="Choose JSON file to import">
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+<main id="main">
+ <header class="top">
+  <button class="btn menu" id="menu" aria-expanded="false" aria-controls="side">Menu</button>
+  <h1 id="title">Overview</h1>
+  <button class="btn pri" id="bAdd">Add task</button>
+  <button class="btn" id="bTheme"></button>
+ </header>
+ <div class="banner" id="banner" hidden><span><strong>Sample data.</strong> These tasks are examples. Edit them freely.</span><button class="btn sm" id="bRemoveSample">Remove sample data</button></div>
+ <section class="filters" aria-label="Filters">
+  <label>Search<input id="q" type="search" placeholder="Title or project" maxlength="80"></label>
+  <label>Project<select id="fp"></select></label>
+  <label>Status<select id="fs"></select></label>
+  <button class="btn" id="bClear">Clear filters</button>
+ </section>
+ <section id="v-overview" aria-label="Overview">
+  <div class="kpis" id="kpis"></div>
+  <div class="charts">
+   <div class="card"><h2>Tasks by status</h2><div id="c1"></div></div>
+   <div class="card"><h2>Progress by project</h2><div id="c2"></div></div>
+  </div>
+ </section>
+ <section id="v-tasks" aria-label="Tasks" hidden>
+  <div class="card">
+   <div class="wrap"><table><caption class="sr">Tasks</caption><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+   <div id="empty" class="empty" hidden></div>
+   <div class="pager"><span id="range" aria-live="polite"></span><span class="row"><button class="btn sm" id="prev">Previous</button><button class="btn sm" id="next">Next</button></span></div>
+  </div>
+ </section>
+</main>
+</div>
+
+<dialog id="fdlg" aria-labelledby="ft"><form id="tf" novalidate>
+ <h2 id="ft">Add task</h2>
+ <label>Title<input id="f-title" maxlength="120" required></label>
+ <label>Project<input id="f-project" list="plist" maxlength="40" required></label><datalist id="plist"></datalist>
+ <div class="two"><label>Status<select id="f-status"></select></label><label>Priority<select id="f-pri"></select></label></div>
+ <div class="two"><label>Due date<input id="f-due" type="date" required></label><label>Estimate (hours)<input id="f-est" type="number" min="0" max="999" step="0.5"></label></div>
+ <p class="err" id="ferr" role="alert"></p>
+ <div class="row"><button type="button" class="btn" id="fcancel">Cancel</button><button class="btn pri">Save task</button></div>
+</form></dialog>
+
+<dialog id="cdlg" aria-labelledby="ct"><form method="dialog" class="stack">
+ <h2 id="ct"></h2><p id="cm" style="margin:0"></p>
+ <div class="row"><button class="btn" value="cancel">Cancel</button><button class="btn dng" id="cok" value="ok"></button></div>
+</form></dialog>
+
+<dialog id="sdlg" aria-labelledby="st"><div class="stack">
+ <h2 id="st">Settings</h2>
+ <label>Rows per page<select id="ps"><option>5</option><option>8</option><option>10</option><option>20</option></select></label>
+ <button class="btn" id="bRestore">Restore sample data</button>
+ <button class="btn dng" id="bWipe">Delete all tasks</button>
+ <p style="margin:0;color:var(--mute);font-size:.9rem">Data is stored only in this browser (localStorage). Export JSON to back it up.</p>
+ <div class="row"><button class="btn pri" id="sclose">Done</button></div>
+</div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(()=>{'use strict';
+const KEY='tasklane.v1';
+const STATUS=[['todo','To do'],['prog','In progress'],['block','Blocked'],['done','Done']];
+const SL=Object.fromEntries(STATUS), PRI=['High','Medium','Low'];
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const off=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():'t'+Date.now()+Math.random().toString(16).slice(2));
+const h=(t,p={},...k)=>{const e=document.createElement(t);for(const[a,v]of Object.entries(p)){if(a==='class')e.className=v;else if(a.startsWith('on'))e.addEventListener(a.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(a,v===true?'':v)}for(const c of k.flat())if(c!=null)e.append(c);return e};
+const s=(t,p={},...k)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const[a,v]of Object.entries(p))e.setAttribute(a,v);for(const c of k)e.append(c);return e};
+const fmt=d=>{const[y,m,x]=d.split('-').map(Number);return new Date(y,m-1,x).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
+
+const sample=()=>[
+['Audit existing site content','Website relaunch','done','Medium',-14,6],
+['Design new homepage layout','Website relaunch','done','High',-8,12],
+['Build responsive navigation','Website relaunch','prog','High',2,10],
+['Migrate blog posts','Website relaunch','block','Low',-2,8],
+['Accessibility review','Website relaunch','todo','High',9,5],
+['Set up crash reporting','Mobile app','done','Medium',-5,3],
+['Implement offline sync','Mobile app','prog','High',6,24],
+['Write onboarding screens','Mobile app','prog','Medium',-1,8],
+['Submit beta to app stores','Mobile app','todo','High',12,4],
+['Fix login timeout bug','Mobile app','block','High',1,2],
+['Draft Q4 goals','Q4 planning','done','High',-9,4],
+['Collect team capacity estimates','Q4 planning','todo','Medium',4,3],
+['Review budget with finance','Q4 planning','todo','Medium',7,2],
+['Publish roadmap to stakeholders','Q4 planning','todo','Low',15,3]
+].map(([title,project,status,priority,d,est])=>({id:uid(),title,project,status,priority,due:off(d),est,sample:true}));
+
+const S={tasks:[],theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',ps:8,view:'overview',q:'',fp:'',fs:'',key:'due',dir:1,page:1};
+
+function clean(o){
+ if(!o||typeof o!=='object')return null;
+ const title=String(o.title??'').trim().slice(0,120), project=String(o.project??'').trim().slice(0,40);
+ const status=String(o.status), priority=PRI.includes(o.priority)?o.priority:'Medium';
+ const due=String(o.due??''), est=Number(o.est);
+ if(!title||!project||!SL[status]||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(due)||isNaN(Date.parse(due)))return null;
+ return{id:typeof o.id==='string'&&o.id.length<80?o.id:uid(),title,project,status,priority,due,est:isFinite(est)&&est>=0&&est<=999?est:0,sample:o.sample===true};
+}
+function load(){
+ try{const d=JSON.parse(localStorage.getItem(KEY)||'null');
+  if(d){S.tasks=(d.tasks||[]).map(clean).filter(Boolean);if(['light','dark'].includes(d.theme))S.theme=d.theme;if([5,8,10,20].includes(d.ps))S.ps=d.ps;return}}catch(e){}
+ S.tasks=sample();
+}
+let warned=false;
+function save(){try{localStorage.setItem(KEY,JSON.stringify({tasks:S.tasks,theme:S.theme,ps:S.ps}))}catch(e){if(!warned){warned=true;toast('Could not save to this browser. Export JSON to keep your data.')}}}
+let tt;function toast(m){const t=$('#toast');t.textContent=m;clearTimeout(tt);tt=setTimeout(()=>t.textContent='',3500)}
+
+const today=()=>off(0);
+const isOver=t=>t.status!=='done'&&t.due<today();
+const pOrd=p=>PRI.indexOf(p), sOrd=k=>STATUS.findIndex(x=>x[0]===k);
+function view(){
+ const q=S.q.trim().toLowerCase();
+ let r=S.tasks.filter(t=>(!q||t.title.toLowerCase().includes(q)||t.project.toLowerCase().includes(q))&&(!S.fp||t.project===S.fp)&&(!S.fs||t.status===S.fs));
+ const k=S.key;
+ r.sort((a,b)=>{let x,y;if(k==='priority'){x=pOrd(a.priority);y=pOrd(b.priority)}else if(k==='status'){x=sOrd(a.status);y=sOrd(b.status)}else{x=a[k].toLowerCase();y=b[k].toLowerCase()}return(x<y?-1:x>y?1:a.title.localeCompare(b.title))*S.dir});
+ return r;
+}
+
+function chart(rows,aria){
+ const W=420,L=130,R=36,H=30,max=Math.max(1,...rows.map(r=>r.parts.reduce((a,p)=>a+p.v,0)));
+ const svg=s('svg',{viewBox:`0 0 ${W} ${rows.length*H+4}`,role:'img','aria-label':aria,class:'chart'});
+ rows.forEach((r,i)=>{const y=i*H+4;let x=L;const tot=r.parts.reduce((a,p)=>a+p.v,0);
+  const lb=s('text',{x:0,y:y+17,class:'lbl'},r.label.length>18?r.label.slice(0,17)+'…':r.label);lb.append(s('title',{},r.label));svg.append(lb);
+  for(const p of r.parts){const w=p.v/max*(W-L-R);if(w>0){svg.append(s('rect',{x,y:y+4,width:w,height:18,rx:2,class:p.cls}));x+=w}}
+  svg.append(s('text',{x:x+6,y:y+17,class:'val'},String(tot)))});
+ return svg;
+}
+
+function renderOverview(r){
+ const done=r.filter(t=>t.status==='done').length, over=r.filter(isOver).length;
+ const t0=today(),t7=off(7), soon=r.filter(t=>t.status!=='done'&&t.due>=t0&&t.due<=t7).length;
+ const pct=r.length?Math.round(done/r.length*100):0;
+ const k=(n,l,w)=>h('div',{class:'card kpi'+(w&&n>0?' warn':'')},h('b',{},String(n)),h('span',{},l));
+ $('#kpis').replaceChildren(k(r.length-done,'Open tasks'),k(pct+'%','Completed'),k(over,'Overdue',1),k(soon,'Due in the next 7 days'));
+ if(!r.length){const m=h('p',{class:'empty'},'No tasks match the current filters.');$('#c1').replaceChildren(m);$('#c2').replaceChildren(m.cloneNode(true));return}
+ const rows=STATUS.map(([key,l])=>({label:l,parts:[{v:r.filter(t=>t.status===key).length,cls:'b-'+key}]}));
+ $('#c1').replaceChildren(chart(rows,'Tasks by status: '+rows.map(x=>x.label+' '+x.parts[0].v).join(', ')));
+ const by={};r.forEach(t=>{(by[t.project]??={d:0,o:0})[t.status==='done'?'d':'o']++});
+ const pr=Object.entries(by).sort((a,b)=>(b[1].d+b[1].o)-(a[1].d+a[1].o)).slice(0,8).map(([n,v])=>({label:n,parts:[{v:v.d,cls:'b-done'},{v:v.o,cls:'b-open'}],d:v.d,o:v.o}));
+ const lg=h('div',{class:'legend'},h('span',{},h('i',{style:'background:var(--done)'}),'Done'),h('span',{},h('i',{style:'background:var(--todo)'}),'Open'));
+ $('#c2').replaceChildren(chart(pr,'Progress by project: '+pr.map(x=>`${x.label} ${x.d} done, ${x.o} open`).join('; ')),lg);
+}
+
+const COLS=[['title','Task'],['project','Project'],['status','Status'],['priority','Priority'],['due','Due']];
+function renderHead(){
+ $('#thead').replaceChildren(...COLS.map(([k,l])=>h('th',{scope:'col','aria-sort':S.key===k?(S.dir>0?'ascending':'descending'):'none'},h('button',{'data-sort':k,title:'Sort by '+l},l+(S.key===k?(S.dir>0?' ▲':' ▼'):'')))),h('th',{scope:'col'},'Actions'));
+}
+function renderTable(r){
+ const pages=Math.max(1,Math.ceil(r.length/S.ps));S.page=Math.min(S.page,pages);
+ const a=(S.page-1)*S.ps, rows=r.slice(a,a+S.ps);
+ $('#tbody').replaceChildren(...rows.map(t=>h('tr',{},
+  h('td',{},t.title),h('td',{},t.project),
+  h('td',{},h('span',{class:'badge',style:'--c:var(--'+t.status+')'},h('i'),SL[t.status])),
+  h('td',{},t.priority),
+  h('td',{},fmt(t.due),isOver(t)?h('span',{class:'over'},' (overdue)'):null),
+  h('td',{},h('div',{class:'acts'},
+   h('button',{class:'btn sm','data-act':'edit','data-id':t.id,'aria-label':'Edit '+t.title},'Edit'),
+   h('button',{class:'btn sm dng','data-act':'del','data-id':t.id,'aria-label':'Delete '+t.title},'Delete'))))));
+ const em=$('#empty');em.hidden=r.length>0;
+ em.textContent=S.tasks.length?'No tasks match the current filters.':'No tasks yet. Choose “Add task” to create your first one.';
+ $('#range').textContent=r.length?`Showing ${a+1}–${a+rows.length} of ${r.length}`:'0 tasks';
+ $('#prev').disabled=S.page<=1;$('#next').disabled=S.page>=pages;
+}
+function renderFilters(){
+ const ps=[...new Set(S.tasks.map(t=>t.project))].sort();
+ if(S.fp&&!ps.includes(S.fp))S.fp='';
+ $('#fp').replaceChildren(h('option',{value:''},'All projects'),...ps.map(p=>h('option',{value:p,selected:p===S.fp},p)));
+ $('#plist').replaceChildren(...ps.map(p=>h('option',{value:p})));
+}
+function render(){
+ document.documentElement.dataset.theme=S.theme;
+ $('#bTheme').textContent=S.theme==='dark'?'Light theme':'Dark theme';
+ $('#banner').hidden=!S.tasks.some(t=>t.sample);
+ renderFilters();
+ const r=view();
+ renderOverview(r);renderHead();renderTable(r);
+ const tasks=S.view==='tasks';
+ $('#v-overview').hidden=tasks;$('#v-tasks').hidden=!tasks;
+ $('#title').textContent=tasks?'Tasks':'Overview';
+ document.title=(tasks?'Tasks':'Overview')+' – Tasklane';
+ document.querySelectorAll('.nav[data-view]').forEach(b=>b.getAttribute('data-view')===S.view?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+}
+
+/* Dialogs */
+function ask(title,msg,ok){return new Promise(res=>{const d=$('#cdlg');$('#ct').textContent=title;$('#cm').textContent=msg;$('#cok').textContent=ok;d.returnValue='';d.addEventListener('close',()=>res(d.returnValue==='ok'),{once:true});d.showModal()})}
+let editId=null;
+function openForm(t){
+ editId=t?t.id:null;$('#ft').textContent=t?'Edit task':'Add task';$('#ferr').textContent='';
+ $('#f-title').value=t?t.title:'';$('#f-project').value=t?t.project:($('#fp').value||'');
+ $('#f-status').value=t?t.status:'todo';$('#f-pri').value=t?t.priority:'Medium';
+ $('#f-due').value=t?t.due:off(7);$('#f-est').value=t&&t.est?t.est:'';
+ $('#fdlg').showModal();$('#f-title').focus();
+}
+$('#f-status').replaceChildren(...STATUS.map(([k,l])=>h('option',{value:k},l)));
+$('#f-pri').replaceChildren(...PRI.map(p=>h('option',{value:p},p)));
+$('#tf').addEventListener('submit',e=>{
+ e.preventDefault();
+ const o={id:editId||uid(),title:$('#f-title').value,project:$('#f-project').value,status:$('#f-status').value,priority:$('#f-pri').value,due:$('#f-due').value,est:$('#f-est').value===''?0:$('#f-est').value};
+ const err=!o.title.trim()?'Enter a task title.':!o.project.trim()?'Enter a project name.':!o.due||isNaN(Date.parse(o.due))?'Choose a valid due date.':(o.est!==0&&(isNaN(+o.est)||+o.est<0||+o.est>999))?'Estimate must be between 0 and 999 hours.':'';
+ if(err){$('#ferr').textContent=err;return}
+ const t=clean(o);if(!t){$('#ferr').textContent='Check the fields and try again.';return}
+ if(editId){const i=S.tasks.findIndex(x=>x.id===editId);if(i>-1)S.tasks[i]=t}else S.tasks.push(t);
+ save();$('#fdlg').close();render();toast(editId?'Task updated':'Task added');
+});
+$('#fcancel').onclick=()=>$('#fdlg').close();
+
+/* Events */
+$('#bAdd').onclick=()=>openForm();
+$('#bTheme').onclick=()=>{S.theme=S.theme==='dark'?'light':'dark';save();render()};
+$('#q').addEventListener('input',e=>{S.q=e.target.value;S.page=1;render()});
+$('#fp').addEventListener('change',e=>{S.fp=e.target.value;S.page=1;render()});
+$('#fs').replaceChildren(h('option',{value:''},'All statuses'),...STATUS.map(([k,l])=>h('option',{value:k},l)));
+$('#fs').addEventListener('change',e=>{S.fs=e.target.value;S.page=1;render()});
+$('#bClear').onclick=()=>{S.q=S.fp=S.fs='';$('#q').value='';$('#fs').value='';S.page=1;render()};
+$('#thead').addEventListener('click',e=>{const b=e.target.closest('[data-sort]');if(!b)return;const k=b.dataset.sort;S.dir=S.key===k?-S.dir:1;S.key=k;S.page=1;render();$('#thead [data-sort="'+k+'"]').focus()});
+$('#prev').onclick=()=>{S.page--;render()};
+$('#next').onclick=()=>{S.page++;render()};
+$('#tbody').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;
+ const t=S.tasks.find(x=>x.id===b.dataset.id);if(!t)return;
+ if(b.dataset.act==='edit')openForm(t);
+ else if(await ask('Delete task?',`“${t.title}” will be permanently removed.`,'Delete task')){S.tasks=S.tasks.filter(x=>x.id!==t.id);save();render();toast('Task deleted')}
+});
+$('#bRemoveSample').onclick=async()=>{if(await ask('Remove sample data?','All sample tasks will be deleted. Tasks you added stay.','Remove sample data')){S.tasks=S.tasks.filter(t=>!t.sample);save();render()}};
+
+/* Nav + menu */
+const side=$('#side');
+function menu(open){side.classList.toggle('open',open);$('#scrim').hidden=!open;$('#menu').setAttribute('aria-expanded',open)}
+$('#menu').onclick=()=>menu(!side.classList.contains('open'));
+$('#scrim').onclick=()=>menu(false);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')menu(false)});
+document.querySelectorAll('.nav[data-view]').forEach(b=>b.onclick=()=>{location.hash=b.dataset.view;menu(false)});
+const route=()=>{S.view=location.hash==='#tasks'?'tasks':'overview';render()};
+addEventListener('hashchange',route);
+
+/* Import / export */
+$('#bExport').onclick=async()=>{
+ menu(false);
+ const name='tasklane-'+today()+'.json', text=JSON.stringify({app:'tasklane',version:1,tasks:S.tasks},null,2);
+ let dl=null;
+ try{if(window.claude&&claude.use)dl=await claude.use('downloads')}catch(e){}
+ if(dl){
+  try{await dl.save({filename:name,data:text});toast('Exported '+S.tasks.length+' tasks')}
+  catch(e){if(!e||e.code!=='declined')toast('Export is not available here.')}
+  return;
+ }
+ const blob=new Blob([text],{type:'application/json'});
+ const a=h('a',{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ toast('Exported '+S.tasks.length+' tasks');
+};
+$('#bImport').onclick=()=>$('#file').click();
+$('#file').addEventListener('change',async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f)return;menu(false);
+ if(f.size>2e6){toast('File is too large (2 MB max).');return}
+ let data;try{data=JSON.parse(await f.text())}catch(x){toast('That file is not valid JSON.');return}
+ const arr=Array.isArray(data)?data:data&&Array.isArray(data.tasks)?data.tasks:null;
+ if(!arr){toast('Expected a list of tasks or an object with a “tasks” list.');return}
+ const ok=arr.map(clean).filter(Boolean);
+ if(!ok.length){toast('No valid tasks found in that file.');return}
+ const skipped=arr.length-ok.length;
+ if(await ask('Replace current tasks?',`Import ${ok.length} task${ok.length===1?'':'s'}${skipped?` (${skipped} invalid skipped)`:''}. This replaces all current tasks.`,'Replace tasks')){S.tasks=ok;S.page=1;save();render();toast('Imported '+ok.length+' tasks')}
+});
+
+/* Settings */
+$('#bSettings').onclick=()=>{menu(false);$('#ps').value=S.ps;$('#sdlg').showModal()};
+$('#sclose').onclick=()=>$('#sdlg').close();
+$('#ps').onchange=e=>{S.ps=+e.target.value;S.page=1;save();render()};
+$('#bRestore').onclick=async()=>{if(await ask('Restore sample data?','This replaces all current tasks with the labeled sample set.','Restore sample data')){S.tasks=sample();save();render();toast('Sample data restored')}};
+$('#bWipe').onclick=async()=>{if(await ask('Delete all tasks?','Every task will be removed from this browser. Export first if you want a backup.','Delete all tasks')){S.tasks=[];save();render();toast('All tasks deleted')}};
+
+load();route();
+})();
+</script>
+</body>
+</html>
